@@ -2,8 +2,14 @@ package flashcards
 
 import java.io.File
 import kotlin.io.path.*
+import java.io.ByteArrayOutputStream
+import java.io.PrintStream
+import java.io.InputStream
 
-class Card(val term: String, val definition: String)
+
+class Card(val term: String, val definition: String) {
+    var mistakes = 0
+}
 
 fun addCard(cards: MutableList<Card>) {
     println("The card:")
@@ -48,7 +54,7 @@ fun exportCard(cards: MutableList<Card>) {
     println("File name:")
     val filename = readln()
     val file = File(filename)
-    for(card in cards){
+    for (card in cards) {
         file.appendText("${card.term}: ${card.definition}\n")
     }
     println("${cards.size} cards have been saved.")
@@ -57,17 +63,19 @@ fun exportCard(cards: MutableList<Card>) {
 fun ask(cards: MutableList<Card>) {
     println("How many times to ask?")
     val timesAsk = readln().toInt()
-    repeat(timesAsk){
+    repeat(timesAsk) {
         val card = cards.random()
         println("Print the definition of \"${card.term}\":")
         val userDefenition = readln()
         if (userDefenition == card.definition)
             println("Correct!")
         else {
+            card.mistakes++
+
             val matchingCard = cards.find { it.definition == userDefenition }
 
             if (matchingCard != null) {
-                println("Wrong. The right answer is \"${card.definition}\", but your definition is correct for \"${matchingCard.definition}\"")
+                println("Wrong. The right answer is \"${card.definition}\", but your definition is correct for \"${matchingCard.term}\"")
             } else {
                 println("Wrong. The right answer is \"${card.definition}\".")
             }
@@ -75,8 +83,35 @@ fun ask(cards: MutableList<Card>) {
     }
 }
 
+@Suppress("unused")
+fun startLog(logBuffer: StringBuilder){
+    val originalOut = System.out
+    val capturingOut = PrintStream(object : ByteArrayOutputStream() {
+        override fun write(b: Int) {
+            logBuffer.append(b.toChar())
+            originalOut.write(b)
+        }
+    })
+    System.setOut(capturingOut)
+
+    val originalIn = System.`in`
+    val customIn = object : InputStream() {
+        override fun read(): Int {
+            val char = originalIn.read()
+            if (char != -1) {
+                logBuffer.append(char.toChar())
+            }
+            return char
+        }
+    }
+    System.setIn(customIn)
+}
+
 fun main() {
     val cards: MutableList<Card> = mutableListOf()
+
+    val logBuffer = StringBuilder()
+    //startLog(logBuffer)
 
     var exit = false
     while (!exit) {
@@ -91,6 +126,33 @@ fun main() {
             "exit" -> {
                 println("Buy bye!")
                 exit = true
+            }
+
+            "log" -> {
+                println("File name:")
+                val filename = readln()
+                val file = File(filename)
+                file.writeText(logBuffer.toString())
+                println("The log has been saved.")
+            }
+
+            "hardest card" -> {
+                val maxMistakes = cards.maxOf { it.mistakes }
+
+                if (maxMistakes == 0)
+                    println("There are no cards with errors.")
+                else {
+                    val matchingCards = cards.filter { it.mistakes == maxMistakes }
+                    if (matchingCards.size == 1)
+                        println("The hardest card is \"${matchingCards[0].term}\". You have ${maxMistakes} errors answering it.")
+                    else
+                        println("The hardest cards are \"${matchingCards.joinToString("\", \"")}\"")
+                }
+            }
+
+            "reset stats" -> {
+                for (card in cards)
+                    card.mistakes = 0
             }
 
             else -> println("Invalid command")

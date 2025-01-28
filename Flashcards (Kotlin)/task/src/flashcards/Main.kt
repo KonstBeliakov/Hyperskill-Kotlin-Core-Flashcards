@@ -31,10 +31,14 @@ fun removeCard(cards: MutableList<Card>) {
         println("Can't remove \"$term\": there is no such card.")
 }
 
-fun importCard(cards: MutableList<Card>) {
-    println("File name:")
-    val filename = readln()
-    val textFile = Path(filename)
+fun importCard(cards: MutableList<Card>, filename: String? = null) {
+    var filename_ = filename
+    if (filename_ == null) {
+        println("File name:")
+        filename_ = readln()
+    }
+
+    val textFile = Path(filename_)
 
     if (!textFile.exists()) {
         println("File not found.")
@@ -50,13 +54,18 @@ fun importCard(cards: MutableList<Card>) {
 
 }
 
-fun exportCard(cards: MutableList<Card>) {
-    println("File name:")
-    val filename = readln()
-    val file = File(filename)
-    for (card in cards) {
-        file.appendText("${card.term}: ${card.definition}\n")
+fun exportCard(cards: MutableList<Card>, filename: String? = null) {
+    var filename_ = filename
+    if (filename_ == null) {
+        println("File name:")
+        filename_ = readln()
     }
+
+    val textFile = Path(filename_)
+
+    for (card in cards)
+        textFile.appendText("${card.term}: ${card.definition}\n")
+
     println("${cards.size} cards have been saved.")
 }
 
@@ -84,7 +93,7 @@ fun ask(cards: MutableList<Card>) {
 }
 
 @Suppress("unused")
-fun startLog(logBuffer: StringBuilder){
+fun startLog(logBuffer: StringBuilder) {
     val originalOut = System.out
     val capturingOut = PrintStream(object : ByteArrayOutputStream() {
         override fun write(b: Int) {
@@ -107,11 +116,18 @@ fun startLog(logBuffer: StringBuilder){
     System.setIn(customIn)
 }
 
-fun main() {
+fun main(args: Array<String>) {
     val cards: MutableList<Card> = mutableListOf()
 
     val logBuffer = StringBuilder()
-    //startLog(logBuffer)
+    startLog(logBuffer)
+
+    for (i in args.indices) {
+        when (args[i]) {
+            "-import" -> importCard(cards, filename = args[i + 1])
+            "-export" -> exportCard(cards, filename = args[i + 1])
+        }
+    }
 
     var exit = false
     while (!exit) {

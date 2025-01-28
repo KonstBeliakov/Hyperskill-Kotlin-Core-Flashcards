@@ -1,39 +1,99 @@
 package flashcards
 
+import java.io.File
+import kotlin.io.path.*
+
 class Card(val term: String, val definition: String)
 
-fun main() {
-    val cards: MutableList<Card> = mutableListOf()
+fun addCard(cards: MutableList<Card>) {
+    println("The card:")
+    val term = readln()
+    println("The definition of the card:")
+    val definition = readln()
+    cards.add(Card(term, definition))
+    println("The pair (\"$term\":\"$definition\") has been added")
+}
 
-    println("Input the number of cards:")
-    val cardNumber = readln().toInt()
+fun removeCard(cards: MutableList<Card>) {
+    println("Which card?")
+    val term = readln()
+    val card = cards.firstOrNull({ it.term == term })
+    if (card != null) {
+        cards.remove(card)
+        println("The card has been removed.")
+    } else
+        println("Can't remove \"$term\": there is no such card.")
+}
 
-    for (i in 1..cardNumber) {
-        println("Card #$i")
-        val term = readln()
-        if (cards.any { it.term == term })
-            println("The term \"$term\" already exists. Try again:")
-        println("The definition for card #$i:")
-        val defenition = readln()
-        if (cards.any { it.definition == defenition })
-            println("The definition \"$defenition\" already exists.")
+fun importCard(cards: MutableList<Card>) {
+    println("File name:")
+    val filename = readln()
+    val textFile = Path(filename)
 
-        cards.add(Card(term, defenition))
+    if (!textFile.exists()) {
+        println("File not found.")
+    } else {
+        var cardsAdded = 0
+        textFile.forEachLine {
+            val (term, definition) = it.split(":")
+            cards.add(Card(term, definition))
+            cardsAdded++
+        }
+        println("$cardsAdded cards have been loaded.")
     }
 
-    for (card in cards) {
+}
+
+fun exportCard(cards: MutableList<Card>) {
+    println("File name:")
+    val filename = readln()
+    val file = File(filename)
+    for(card in cards){
+        file.appendText("${card.term}: ${card.definition}\n")
+    }
+    println("${cards.size} cards have been saved.")
+}
+
+fun ask(cards: MutableList<Card>) {
+    println("How many times to ask?")
+    val timesAsk = readln().toInt()
+    repeat(timesAsk){
+        val card = cards.random()
         println("Print the definition of \"${card.term}\":")
         val userDefenition = readln()
         if (userDefenition == card.definition)
             println("Correct!")
         else {
-            val matchingCard = cards.find {it.definition == userDefenition}
+            val matchingCard = cards.find { it.definition == userDefenition }
 
-            if(matchingCard != null){
+            if (matchingCard != null) {
                 println("Wrong. The right answer is \"${card.definition}\", but your definition is correct for \"${matchingCard.definition}\"")
-            }else{
+            } else {
                 println("Wrong. The right answer is \"${card.definition}\".")
             }
+        }
+    }
+}
+
+fun main() {
+    val cards: MutableList<Card> = mutableListOf()
+
+    var exit = false
+    while (!exit) {
+        println("Input the action (add, remove, import, export, ask, exit):")
+        val command = readln()
+        when (command) {
+            "add" -> addCard(cards)
+            "remove" -> removeCard(cards)
+            "import" -> importCard(cards)
+            "export" -> exportCard(cards)
+            "ask" -> ask(cards)
+            "exit" -> {
+                println("Buy bye!")
+                exit = true
+            }
+
+            else -> println("Invalid command")
         }
     }
 }
